@@ -3,11 +3,5 @@
     "api/main.py": {
       "runtime": "python3.9"
     }
-  },
-  "routes": [
-    {
-      "src": "/api/main",
-      "dest": "api/main.py"
-    }
-  ]
+  }
 }
