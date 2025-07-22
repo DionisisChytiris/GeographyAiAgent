@@ -46,7 +46,7 @@ class AskRequest(BaseModel):
     userId: str
     question: str
 
-@app.post("/ask")
+@app.post("/")
 def ask(req: AskRequest):
     now = datetime.now(timezone.utc)
     today = now.date()
