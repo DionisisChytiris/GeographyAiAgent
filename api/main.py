@@ -9,6 +9,7 @@ Everything is stored in RAM; restart = fresh state.
 import os
 from datetime import datetime, timezone
 from collections import defaultdict
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from langchain.prompts import PromptTemplate
@@ -17,6 +18,17 @@ from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
 
 load_dotenv()
+
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # or your React Native app origin
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
 # ---------- simple in‑memory "database" ----------
@@ -46,7 +58,7 @@ class AskRequest(BaseModel):
     userId: str
     question: str
 
-@app.post("/")
+@app.post("/api/main")
 def ask(req: AskRequest):
     now = datetime.now(timezone.utc)
     today = now.date()
