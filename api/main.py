@@ -66,7 +66,9 @@ class AskRequest(BaseModel):
 def root():
     return {"message": "FastAPI backend is running. Use POST /api/main"}
 
-
+@app.get("/favicon.ico")
+def favicon():
+    return {}
 
 @app.post("/api/main")
 def ask(req: AskRequest, request: Request):
@@ -76,20 +78,27 @@ def ask(req: AskRequest, request: Request):
     now = datetime.now(timezone.utc)
     today = now.date()
 
-    # Clean up usage for today only
+    # Keep only today’s usage for this combined key
     usage_log[combined_key] = [
         ts for ts in usage_log.get(combined_key, []) if ts.date() == today
     ]
 
+    logging.info(f"User {req.userId} from IP {user_ip} asked: {req.question}")
+
     if len(usage_log[combined_key]) >= DAILY_LIMIT:
+        logging.warning(f"User {req.userId} from IP {user_ip} exceeded daily limit.")
         raise HTTPException(status_code=429, detail="Daily free limit reached")
 
-    # Process question
-    response = chain.invoke({"question": req.question})
-    answer_text = response.content
+    try:
+        response = chain.invoke({"question": req.question})
+        answer_text = response.content
+    except Exception as e:
+        logging.error(f"Error from LangChain/OpenAI for user {req.userId} at IP {user_ip}: {str(e)}")
+        raise HTTPException(status_code=500, detail="AI service error.")
 
-    # Record usage
     usage_log[combined_key].append(now)
+
+    logging.info(f"Answered user {req.userId} at IP {user_ip}, remaining: {DAILY_LIMIT - len(usage_log[combined_key])}")
 
     return {
         "answer": answer_text,
