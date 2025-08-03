@@ -7,6 +7,7 @@ Everything is stored in RAM; restart = fresh state.
 """
 
 import os
+import logging
 from datetime import datetime, timezone
 from collections import defaultdict
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,6 +19,8 @@ from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
 
 load_dotenv()
+
+logging.info("User asked: What is the capital of Greece?")
 
 app = FastAPI()
 
