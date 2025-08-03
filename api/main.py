@@ -82,8 +82,12 @@ def ask(req: AskRequest):
         raise HTTPException(status_code=429, detail="Daily free limit reached")
 
     # -- Call the chain --
-    response = chain.invoke({"question": req.question})
-    answer_text = response.content
+    try:
+        response = chain.invoke({"question": req.question})
+        answer_text = response.content
+    except Exception as e:
+        logging.error(f"Error from LangChain/OpenAI for {req.userId}: {str(e)}")
+        raise HTTPException(status_code=500, detail="AI service error.")
 
     # ✅ Record usage BEFORE returning
     usage_log[req.userId].append(now)
