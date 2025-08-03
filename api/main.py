@@ -11,7 +11,7 @@ import logging
 from datetime import datetime, timezone
 from collections import defaultdict
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
@@ -66,33 +66,63 @@ class AskRequest(BaseModel):
 def root():
     return {"message": "FastAPI backend is running. Use POST /api/main"}
 
+
+
 @app.post("/api/main")
-def ask(req: AskRequest):
+def ask(req: AskRequest, request: Request):
+    user_ip = request.client.host
+    combined_key = f"{req.userId}:{user_ip}"
+
     now = datetime.now(timezone.utc)
     today = now.date()
 
-    # Keep only today’s usage
-    usage_log[req.userId] = [
-        ts for ts in usage_log[req.userId] if ts.date() == today
+    # Clean up usage for today only
+    usage_log[combined_key] = [
+        ts for ts in usage_log.get(combined_key, []) if ts.date() == today
     ]
 
-    logging.info(f"User {req.userId} asked: {req.question}")
-
-    if len(usage_log[req.userId]) >= DAILY_LIMIT:
+    if len(usage_log[combined_key]) >= DAILY_LIMIT:
         raise HTTPException(status_code=429, detail="Daily free limit reached")
 
-    # -- Call the chain --
-    try:
-        response = chain.invoke({"question": req.question})
-        answer_text = response.content
-    except Exception as e:
-        logging.error(f"Error from LangChain/OpenAI for {req.userId}: {str(e)}")
-        raise HTTPException(status_code=500, detail="AI service error.")
+    # Process question
+    response = chain.invoke({"question": req.question})
+    answer_text = response.content
 
-    # ✅ Record usage BEFORE returning
-    usage_log[req.userId].append(now)
+    # Record usage
+    usage_log[combined_key].append(now)
 
     return {
         "answer": answer_text,
-        "remaining": DAILY_LIMIT - len(usage_log[req.userId])
+        "remaining": DAILY_LIMIT - len(usage_log[combined_key])
     }
+
+# @app.post("/api/main")
+# def ask(req: AskRequest):
+#     now = datetime.now(timezone.utc)
+#     today = now.date()
+
+#     # Keep only today’s usage
+#     usage_log[req.userId] = [
+#         ts for ts in usage_log[req.userId] if ts.date() == today
+#     ]
+
+#     logging.info(f"User {req.userId} asked: {req.question}")
+
+#     if len(usage_log[req.userId]) >= DAILY_LIMIT:
+#         raise HTTPException(status_code=429, detail="Daily free limit reached")
+
+#     # -- Call the chain --
+#     try:
+#         response = chain.invoke({"question": req.question})
+#         answer_text = response.content
+#     except Exception as e:
+#         logging.error(f"Error from LangChain/OpenAI for {req.userId}: {str(e)}")
+#         raise HTTPException(status_code=500, detail="AI service error.")
+
+#     # ✅ Record usage BEFORE returning
+#     usage_log[req.userId].append(now)
+
+#     return {
+#         "answer": answer_text,
+#         "remaining": DAILY_LIMIT - len(usage_log[req.userId])
+#     }
