@@ -20,7 +20,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-logging.info("User asked: What is the capital of Greece?")
+logging.basicConfig(level=logging.INFO)
+
 
 app = FastAPI()
 
@@ -61,6 +62,10 @@ class AskRequest(BaseModel):
     userId: str
     question: str
 
+@app.get("/")
+def root():
+    return {"message": "FastAPI backend is running. Use POST /api/main"}
+
 @app.post("/api/main")
 def ask(req: AskRequest):
     now = datetime.now(timezone.utc)
@@ -70,6 +75,8 @@ def ask(req: AskRequest):
     usage_log[req.userId] = [
         ts for ts in usage_log[req.userId] if ts.date() == today
     ]
+
+    logging.info(f"User {req.userId} asked: {req.question}")
 
     if len(usage_log[req.userId]) >= DAILY_LIMIT:
         raise HTTPException(status_code=429, detail="Daily free limit reached")
