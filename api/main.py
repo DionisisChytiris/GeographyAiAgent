@@ -35,6 +35,10 @@ app.add_middleware(
 
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
+
+if not OPENAI_API_KEY:
+    raise ValueError("OPENAI_API_KEY is not set!")
+
 # ---------- simple in‑memory "database" ----------
 DAILY_LIMIT = 10                # tweak as you like
 usage_log = defaultdict(list)   # {username: [datetime, ...]}
@@ -55,7 +59,7 @@ llm = ChatOpenAI(openai_api_key=OPENAI_API_KEY,model="gpt-4o-mini", temperature=
 chain = prompt | llm
 
 # ---------- FastAPI ----------
-app = FastAPI()
+# app = FastAPI()
 
 class AskRequest(BaseModel):
     # username: str
