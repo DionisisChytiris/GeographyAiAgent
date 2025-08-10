@@ -46,7 +46,7 @@ curl -X POST https://<your-vercel-url>/api/main \
 
 ## Run with Docker
 1. Clone the repository:
-git clone https://github.com/your-username/AiAgentWorldTrivia.git
+git clone https://github.com/DionisisChytiris/GeographyAiAgent.git
 
 
 2. Set your OpenAI API key:
